@@ -1,24 +1,38 @@
-from klippervision.config.settings import Settings
-from klippervision.moonraker.client import MoonrakerClient
+import cv2
 
+from klippervision.camera.service import CameraService
+from klippervision.utils.overlay import draw_overlay
+from klippervision.detector.yolo import YoloDetector
 
 class Application:
-    """Main KlipperVision application."""
+    """Main application."""
 
     def __init__(self):
-        self.settings = Settings()
-        self.moonraker = MoonrakerClient(self.settings)
+        self.camera = CameraService()
+        self.detector = YoloDetector()  # Assuming you have a YOLO detector class defined elsewhere
 
     def run(self):
-        status = self.moonraker.get_status()
 
-        print("=================================")
-        print("      KlipperVision v0.1.0")
-        print("=================================")
+        if not self.camera.start():
+            print("Unable to connect to camera.")
+            return
 
-        print(f"Printer      : {self.settings.printer_name}")
-        print(f"Moonraker    : {self.moonraker.base_url}")
-        print(f"State        : {status.state}")
-        print(f"Connected    : {status.connected}")
-        print(f"Nozzle Temp  : {status.nozzle_temp}°C")
-        print(f"Bed Temp     : {status.bed_temp}°C")
+        print("Camera connected.")
+
+        while True:
+
+            frame = self.camera.get_frame()
+
+            if frame is not None:
+                results = self.detector.detect(frame)
+                frame = results[0].plot() 
+                frame = draw_overlay(frame)  # Assuming draw_overlay is a function that draws the detection results on the frame
+                cv2.imshow("KlipperVision", frame)
+
+            key = cv2.waitKey(1)
+
+            if key == ord("q"):
+                break
+
+        self.camera.stop()
+        cv2.destroyAllWindows()
