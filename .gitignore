@@ -40,3 +40,6 @@ models/*.engine
 
 # Local configuration
 config.local.toml
+
+# Yolo model weights
+*.pt
